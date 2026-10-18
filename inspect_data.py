@@ -1,9 +1,18 @@
+
 import pandas as pd
 from pathlib import Path
 
-data_dir = Path("mturkfitbit_export_3.12.16-4.11.16")
+print("Script started!")
 
-for file in data_dir.glob("*.csv"):
+data_dir = Path("data_files")
+
+print("Looking inside:", data_dir.resolve())
+print("Folder exists:", data_dir.exists())
+
+csv_files = list(data_dir.rglob("*.csv"))
+print("CSV files found:", len(csv_files))
+
+for file in csv_files:
     df = pd.read_csv(file)
 
     print(f"\n--- {file.name} ---")

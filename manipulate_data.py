@@ -21,6 +21,10 @@ original["ActivityHour"] = pd.to_datetime(
     format="%m/%d/%Y %I:%M:%S %p",
 )
 
+# Keep an untouched baseline copy
+baseline = original.copy()
+baseline.to_csv(output_dir / "baseline.csv", index=False)
+
 # Reproducible random selection
 rng = np.random.default_rng(42)
 

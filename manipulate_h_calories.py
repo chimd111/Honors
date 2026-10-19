@@ -42,8 +42,8 @@ missing_rows = rng.choice(
     replace=False,
 )
 
-# Remove 10% of StepTotal values, not entire rows
-missing.loc[missing_rows, "StepTotal"] = np.nan
+# Remove 10% of Calories values, not entire rows
+missing.loc[missing_rows, "Calories"] = np.nan
 
 missing.to_csv(
     output_dir / "hourly_calories_missing_10_percent.csv",
@@ -88,13 +88,13 @@ selected = rng.choice(
     replace=False,
 )
 
-noise_scale = varied["StepTotal"].std() * 0.10
+noise_scale = varied["Calories"].std() * 0.10
 noise = rng.normal(0, noise_scale, size=count)
 
-varied.loc[selected, "StepTotal"] = np.maximum(
+varied.loc[selected, "Calories"] = np.maximum(
     0,
     np.round(
-        varied.loc[selected, "StepTotal"].to_numpy() + noise
+        varied.loc[selected, "Calories"].to_numpy() + noise
     ),
 ).astype(int)
 
@@ -113,7 +113,7 @@ selected = rng.choice(
     replace=False,
 )
 
-spikes.loc[selected, "StepTotal"] = 5000
+spikes.loc[selected, "Calories"] = 5000
 spikes["corruption_type"] = "unrealistic_spike"
 
 corrupted_groups.append(spikes)
@@ -136,7 +136,7 @@ noisy_data.to_csv(
 print("Experiments created successfully!")
 print("\nMissing-data experiment:")
 print("Original rows:", len(original))
-print("Missing StepTotal values:", missing["StepTotal"].isna().sum())
+print("Missing Calories values:", missing["Calories"].isna().sum())
 
 print("\nCorrupted-data experiment:")
 print("Total rows:", len(noisy_data))

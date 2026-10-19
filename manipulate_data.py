@@ -1,61 +1,141 @@
 
 from pathlib import Path
-import pandas as pd
-import numpy as np
 
-# Folders
+import numpy as np
+import pandas as pd
+
+# --------------------------------------------------
+# SETUP
+# --------------------------------------------------
+
 data_dir = Path("data_files")
 output_dir = Path("experimental_data")
 output_dir.mkdir(exist_ok=True)
 
 # Load the original dataset
-df = pd.read_csv(data_dir / "hourlySteps_merged.csv")
+original = pd.read_csv(data_dir / "hourlySteps_merged.csv")
 
-# Parse timestamps
-df["ActivityHour"] = pd.to_datetime(
-    df["ActivityHour"],
-    format="%m/%d/%Y %I:%M:%S %p"
+# Make timestamps usable for time manipulation
+original["ActivityHour"] = pd.to_datetime(
+    original["ActivityHour"],
+    format="%m/%d/%Y %I:%M:%S %p",
 )
 
-# Keep an untouched baseline copy
-baseline = df.copy()
-baseline.to_csv(output_dir / "baseline.csv", index=False)
-
-# Use a fixed seed so experiments are reproducible
+# Reproducible random selection
 rng = np.random.default_rng(42)
-n = len(df)
-count = round(n * 0.10)
 
-# Experiment A: 10% missing step counts
-missing = df.copy()
-missing_rows = rng.choice(n, size=count, replace=False)
+# --------------------------------------------------
+# FILE 1: 10% MISSING DATA
+# --------------------------------------------------
+
+missing = original.copy()
+
+missing_count = round(len(missing) * 0.10)
+
+missing_rows = rng.choice(
+    missing.index.to_numpy(),
+    size=missing_count,
+    replace=False,
+)
+
+# Remove 10% of StepTotal values, not entire rows
 missing.loc[missing_rows, "StepTotal"] = np.nan
-missing.to_csv(output_dir / "missing_10_percent.csv", index=False)
 
-# Experiment B: Noise on 10% of step counts
-noisy = df.copy()
-noise_rows = rng.choice(n, size=count, replace=False)
+missing.to_csv(
+    output_dir / "missing_10_percent.csv",
+    index=False,
+)
 
-original_steps = noisy.loc[noise_rows, "StepTotal"]
-noise = rng.normal(loc=0, scale=original_steps.std(), size=count)
+# --------------------------------------------------
+# FILE 2: CORRUPTED / NOISY DATA
+# Divide rows into three random groups
+# --------------------------------------------------
 
-noisy.loc[noise_rows, "StepTotal"] = np.maximum(
-    0, np.round(original_steps.to_numpy() + noise)
+shuffled_indices = rng.permutation(original.index.to_numpy())
+groups = np.array_split(shuffled_indices, 3)
+
+corrupted_groups = []
+
+# Group 1: Shift 10% of timestamps by one hour
+shifted = original.loc[groups[0]].copy()
+shifted["OriginalActivityHour"] = shifted["ActivityHour"]
+
+count = round(len(shifted) * 0.10)
+
+selected = rng.choice(
+    shifted.index.to_numpy(),
+    size=count,
+    replace=False,
+)
+
+shifted.loc[selected, "ActivityHour"] += pd.Timedelta(hours=1)
+shifted["corruption_type"] = "timestamp_shift"
+
+corrupted_groups.append(shifted)
+
+# Group 2: Add random variation to 10% of step counts
+varied = original.loc[groups[1]].copy()
+
+count = round(len(varied) * 0.10)
+
+selected = rng.choice(
+    varied.index.to_numpy(),
+    size=count,
+    replace=False,
+)
+
+noise_scale = varied["StepTotal"].std() * 0.10
+noise = rng.normal(0, noise_scale, size=count)
+
+varied.loc[selected, "StepTotal"] = np.maximum(
+    0,
+    np.round(
+        varied.loc[selected, "StepTotal"].to_numpy() + noise
+    ),
 ).astype(int)
 
-noisy.to_csv(output_dir / "noisy_10_percent.csv", index=False)
+varied["corruption_type"] = "random_variation"
 
-# Experiment C: Shift 10% of timestamps by one hour
-shifted = df.copy()
-shift_rows = rng.choice(n, size=count, replace=False)
+corrupted_groups.append(varied)
 
-shifted.loc[shift_rows, "ActivityHour"] += pd.Timedelta(hours=1)
-shifted.to_csv(output_dir / "timestamp_shift_10_percent.csv",
-               index=False)
+# Group 3: Insert unrealistic spikes in 10% of step counts
+spikes = original.loc[groups[2]].copy()
+
+count = round(len(spikes) * 0.10)
+
+selected = rng.choice(
+    spikes.index.to_numpy(),
+    size=count,
+    replace=False,
+)
+
+spikes.loc[selected, "StepTotal"] = 5000
+spikes["corruption_type"] = "unrealistic_spike"
+
+corrupted_groups.append(spikes)
+
+# Combine the three groups into one file
+noisy_data = pd.concat(
+    corrupted_groups,
+    ignore_index=True,
+)
+
+noisy_data.to_csv(
+    output_dir / "noisy_data.csv",
+    index=False,
+)
+
+# --------------------------------------------------
+# VERIFY OUTPUTS
+# --------------------------------------------------
 
 print("Experiments created successfully!")
-print("Original rows:", len(baseline))
-print("Missing values introduced:", missing["StepTotal"].isna().sum())
-print("Noisy readings changed:", count)
-print("Timestamps shifted:", count)
-print("Output folder:", output_dir.resolve())
+print("\nMissing-data experiment:")
+print("Original rows:", len(original))
+print("Missing StepTotal values:", missing["StepTotal"].isna().sum())
+
+print("\nCorrupted-data experiment:")
+print("Total rows:", len(noisy_data))
+print(noisy_data["corruption_type"].value_counts())
+
+print("\nFiles saved in:", output_dir.resolve())

@@ -38,6 +38,10 @@ Honors/
 │   │   ├── baseline.csv
 │   │   ├── missing_10_percent.csv
 │   │   └── noisy_data.csv
+│   ├── intensities/
+│   │   ├── baseline.csv
+│   │   ├── missing_10_percent.csv
+│   │   └── noisy_data.csv
 │   └── sleep/
 │       ├── baseline.csv
 │       ├── missing_10_percent.csv
@@ -52,7 +56,7 @@ Honors/
 ### Folder descriptions
 
 - `data_files/`: Contains the original Fitbit CSV files. These files should remain unchanged.
-- `experimental_data/`: Stores the baseline and manipulated datasets in separate folders for steps, heart rate, calories and sleep.
+- `experimental_data/`: Stores the baseline and manipulated datasets in separate folders for steps, heart rate, calories, intensities and sleep.
 - `manipulate_data.py`: Processes the hourly step-count data.
 - `manipulate_h_calories.py`: Adapts the manipulation process to hourly calorie data.
 - `README.md`: Documents the experiment and explains how to run the scripts.

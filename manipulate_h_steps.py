@@ -9,8 +9,8 @@ import pandas as pd
 # --------------------------------------------------
 
 data_dir = Path("data_files")
-output_dir = Path("experimental_data")
-output_dir.mkdir(exist_ok=True)
+output_dir = Path("experimental_data/steps")
+output_dir.mkdir(parents=True, exist_ok=True)
 
 # Load the original dataset
 original = pd.read_csv(data_dir / "hourlySteps_merged.csv")

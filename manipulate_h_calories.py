@@ -9,8 +9,8 @@ import pandas as pd
 # --------------------------------------------------
 
 data_dir = Path("data_files")
-output_dir = Path("experimental_data")
-output_dir.mkdir(exist_ok=True)
+output_dir = Path("experimental_data/calories")
+output_dir.mkdir(parents=True, exist_ok=True)
 
 # Load the original dataset
 original = pd.read_csv(data_dir / "hourlyCalories_merged.csv")
@@ -23,7 +23,7 @@ original["ActivityHour"] = pd.to_datetime(
 
 # Keep an untouched baseline copy
 baseline = original.copy()
-baseline.to_csv(output_dir / "hourly_calories_baseline.csv", index=False)
+baseline.to_csv(output_dir / "baseline.csv", index=False)
 
 # Reproducible random selection
 rng = np.random.default_rng(42)
@@ -46,7 +46,7 @@ missing_rows = rng.choice(
 missing.loc[missing_rows, "Calories"] = np.nan
 
 missing.to_csv(
-    output_dir / "hourly_calories_missing_10_percent.csv",
+    output_dir / "missing_10_percent.csv",
     index=False,
 )
 
@@ -125,7 +125,7 @@ noisy_data = pd.concat(
 )
 
 noisy_data.to_csv(
-    output_dir / "hourly_calories_noisy.csv",
+    output_dir / "noisy_data.csv",
     index=False,
 )
 

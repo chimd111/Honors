@@ -1,0 +1,4 @@
+condition,rows,participants,missing_measurements,duplicate_participant_dates,negative_measurements
+baseline,457,35,0,0,0
+missing_10_percent,457,35,594,0,0
+noisy,457,35,0,11,0

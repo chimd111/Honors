@@ -47,3 +47,26 @@ Only the original wearable-data columns (`Id`, `Time`, `Value`) are retained in 
 Experimental metadata, including original timestamps and corruption labels, is excluded so that models are not explicitly informed of the manipulated data.
 
 The raw measurements are preserved for later aggregation into participant-level or daily summaries.
+
+### Output Files and Running the Processor
+
+- LLM-facing files: `llm_inputs/heart_rate/baseline.csv`, `missing_10_percent.csv`, and `noisy_data.csv`.
+- Internal validation report: `evaluation/heart_rate/validation_report.csv`.
+- Full noisy dataset with corruption metadata: `experimental_data/heart_rate/noisy_data_internal.csv`.
+
+Run from the `Honors` folder with pandas installed:
+
+```powershell
+python process_heartrate.py
+```
+
+The processor reads existing experimental files; it does not rerun manipulation. It preserves row order, missingness, duplicates, and manipulated values.
+
+### Validation Scope
+
+The table above agrees with the current saved validation report. Duplicate counts represent records after the first occurrence of each participant-date or participant-timestamp key. Missing and negative counts apply to measurement cells.
+
+The processor checks required columns, parses dates and numeric measurements, and reports missingness, duplicates, and negative values. It does not establish clinical validity, flag every implausible measurement, or automatically verify the separate reference-mapping results described above.
+
+Internal and LLM-facing noisy files retain the same row order. Original timestamps and corruption labels are excluded from LLM-facing columns. Condition names in filenames should also be hidden or replaced with neutral identifiers before presenting files to a model.
+

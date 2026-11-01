@@ -1,0 +1,4 @@
+condition,rows,participants,missing_values,duplicate_timestamps,negative_values
+baseline,33,11,31,0,0
+missing_10_percent,33,11,34,0,0
+noisy,33,11,31,0,0

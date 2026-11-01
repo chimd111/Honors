@@ -163,7 +163,23 @@ noisy_data = pd.concat(
     ignore_index=True
 )
 
+# Save the complete noisy dataset for internal evaluation
 noisy_data.to_csv(
+    output_dir / "noisy_data_internal.csv",
+    index=False
+)
+
+# Remove experimental metadata before LLM use
+llm_noisy_data = noisy_data.drop(
+    columns=[
+        "OriginalActivityHour",
+        "corruption_type",
+        "was_corrupted",
+    ],
+    errors="ignore"
+)
+
+llm_noisy_data.to_csv(
     output_dir / "noisy_data.csv",
     index=False
 )

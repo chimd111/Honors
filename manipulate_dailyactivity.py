@@ -242,7 +242,26 @@ noisy_data = pd.concat(
     ignore_index=True
 )
 
+# Save full data with corruption metadata
 noisy_data.to_csv(
+    output_dir / "noisy_data_internal.csv",
+    index=False
+)
+
+# Remove experimental metadata from LLM-facing data
+metadata_columns = [
+    "OriginalActivityDate",
+    "corruption_type",
+    "was_corrupted",
+    "modified_column",
+]
+llm_noisy_data = noisy_data.drop(
+    columns=metadata_columns,
+    errors="ignore"
+)
+
+# Save measurements without corruption labels
+llm_noisy_data.to_csv(
     output_dir / "noisy_data.csv",
     index=False
 )

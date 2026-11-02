@@ -2,7 +2,7 @@
 
 ### Objective
 
-The goal of this pipeline is to investigate how wearable data quality affects AI-generated health explanations. Three mass-market large language models (LLMs) will be evaluated: ChatGPT, Claude, and Microsoft Copilot.
+The goal of this pipeline is to investigate how wearable data quality affects AI-generated health explanations. Three mass-market large language models (LLMs) will be evaluated: ChatGPT, Claude, and Gemini.
 
 ### Proposed Pipeline
 
@@ -38,7 +38,7 @@ The prepared prompts will be manually submitted through the regular chat interfa
 
 - ChatGPT (OpenAI)
 - Claude (Anthropic)
-- Microsoft Copilot
+- Gemini
 
 A new conversation will be used for each experimental condition to minimize the influence of previous interactions. Available personalization settings will be minimized, and the model/version and testing date will be recorded where possible.
 

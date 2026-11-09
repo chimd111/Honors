@@ -1,5 +1,12 @@
 ## Proposed LLM Input Pipeline
 
+Implementation update: daily activity prompt generation and automated OpenAI,
+Anthropic, and Gemini API collection are now available. See
+[the pipeline guide](llm_pipeline/README.md) for key setup, previewing, sending,
+and saved artifacts. The manual chat-interface method below is the original
+proposal; the implemented API method uses independent requests and records model
+provenance in each run. Evaluation remains planned.
+
 ### Objective
 
 The goal of this pipeline is to investigate how wearable data quality affects AI-generated health explanations. Three mass-market large language models (LLMs) will be evaluated: ChatGPT, Claude, and Gemini.

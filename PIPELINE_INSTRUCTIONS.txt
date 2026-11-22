@@ -1,0 +1,82 @@
+DAILY ACTIVITY PIPELINE - PLAIN LANGUAGE INSTRUCTIONS
+
+Run these commands from the Honors project folder.
+
+1. CREATE THE DIFFERENT VERSIONS OF THE DATA
+
+python manipulate_dailyactivity.py
+
+This reads the original daily activity CSV and creates:
+- Baseline: the original measurements.
+- Missing: some measurements removed.
+- Noisy: some measurements or dates deliberately changed.
+
+These files go into experimental_data/daily_activity/.
+Running this command again overwrites the generated CSVs. The fixed random seed
+means the same inputs and code produce the same selections.
+
+2. STANDARDIZE THE FILES AND CHECK THEIR STRUCTURE
+
+python process_dailyactivity.py
+
+This reads those three versions and produces:
+- Standardized CSVs in llm_inputs/daily_activity/: consistently formatted dates
+  and numeric measurements.
+- A quality report in evaluation/daily_activity/validation_report.csv: counts of
+  rows, participants, missing measurements, duplicate participant/date records,
+  and negative measurements.
+
+"Cleans it up" means organizes the format here. It keeps the missing values and
+deliberate errors. Running it again overwrites these outputs.
+
+This step is optional for API runs because the API pipeline reads directly from
+experimental_data/daily_activity/.
+
+3. PREVIEW ONE PARTICIPANT'S WEEK
+
+python -m llm_pipeline --participant 1503960366 --start 2016-03-30 --days 7
+
+This selects that participant's available records for March 30-April 5, 2016,
+then:
+- Builds one prompt for each condition.
+- Compares missing and noisy measurements against baseline.
+- Checks that missing has at least 2 removed measurements and noisy has at least
+  2 changed measurement cells. Date changes do not count toward this minimum.
+- Saves prompts and validation reports in a new llm_runs/ folder.
+
+It shows PASS or BLOCKED. No API calls happen.
+
+If BLOCKED, the files are still saved, but sending is stopped. Choose another
+participant/date window or deliberately revise the data generation, then preview
+again. The pipeline does not automatically change the data or choose a new window.
+
+4. SEND THE PROMPTS TO GEMINI
+
+Before sending, configure GEMINI_API_KEY and GEMINI_MODEL in your existing .env
+file. Keep the secret key private. API requests may use quota or incur charges.
+
+Once validation passes and you have checked the prompts:
+
+python -m llm_pipeline --participant 1503960366 --start 2016-03-30 --days 7 --send --providers gemini
+
+This checks validation again, then sends three separate requests to Gemini:
+baseline, missing, and noisy.
+
+Use the same selection arguments and leave the CSVs unchanged between preview
+and sending. Sending rebuilds the prompts from the current CSVs.
+
+It creates a new run folder containing:
+- prompt.txt inside each condition folder: what Gemini received.
+- gemini.txt inside each condition folder: Gemini's explanation, if successful.
+- gemini.json inside each condition folder: response details or error information.
+- validation.txt and validation.json: what changed and whether validation passed.
+- manifest.json: what was selected, the model, and whether each request succeeded.
+
+Check all three request outcomes and the completion information in the provider
+JSON files. A nonempty response can still be cut short.
+
+Every rerun creates a new folder and resends all selected requests; it does not
+resume earlier failed requests. Earlier saved runs remain unchanged.
+
+You can then compare how Gemini explains the same person's week under the three
+data conditions.

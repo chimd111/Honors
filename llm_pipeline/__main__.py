@@ -10,7 +10,7 @@ from pathlib import Path
 import time
 from uuid import uuid4
 
-from .prompts import prepare_prompts
+from .prompts import prepare_experiment
 from .providers import KEYS, generate
 
 
@@ -32,12 +32,12 @@ def main():
     if args.max_tokens < 1:
         parser.error("--max-tokens must be positive")
     try:
-        prompts = prepare_prompts(args.data_dir, args.participant, args.start, args.days)
+        prompts, validation = prepare_experiment(args.data_dir, args.participant, args.start, args.days)
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     providers = list(dict.fromkeys(args.providers))
     models = {}
-    if args.send:
+    if args.send and validation["passed"]:
         from dotenv import load_dotenv
         load_dotenv(Path.cwd() / ".env")
         missing = []
@@ -60,7 +60,8 @@ def main():
             versions[package] = None
     manifest = {"run_id": run_id, "participant": args.participant, "start": args.start,
                 "days": args.days, "data_dir": str(args.data_dir.resolve()), "models": models,
-                "max_output_tokens": args.max_tokens, "sent": args.send,
+                "max_output_tokens": args.max_tokens, "sent": args.send and validation["passed"],
+                "send_requested": args.send, "validation_passed": validation["passed"],
                 "package_versions": versions, "prompts": {}, "results": []}
     for condition, prompt in prompts.items():
         path = run_dir / condition
@@ -68,7 +69,25 @@ def main():
         (path / "prompt.txt").write_text(prompt, encoding="utf-8")
         manifest["prompts"][condition] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     write_json(run_dir / "manifest.json", manifest)
+    write_json(run_dir / "validation.json", validation)
+    lines = ["Window validation", f"Participant: {args.participant}; start: {args.start}; days: {args.days}",
+             f"Selected daily records: {validation['selected_rows']}"]
+    for condition, summary in validation["conditions"].items():
+        lines.append(f"{condition}: {summary['changed_days']} changed days, "
+                     f"{summary['changed_cells']} changed cells, "
+                     f"{summary['removed_measurements']} removed measurements")
+        for change in summary["changes"]:
+            before = "NA" if change["before"] is None else str(change["before"])
+            after = "NA" if change["after"] is None else str(change["after"])
+            lines.append(f"  {change['reference_date']} {change['column']}: {before} -> {after}")
+    lines.append("Validation: " + ("PASS (changes present; severity not assessed)" if validation["passed"] else "BLOCKED"))
+    lines.extend(validation["blocking_reasons"])
+    (run_dir / "validation.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Prompts and metadata saved to {run_dir}")
+    print("\n".join(lines))
+    if not validation["passed"]:
+        print("Choose another window or revise the condition data before sending. No API requests made.")
+        return 1
     failed = False
     if args.send:
         for condition, prompt in prompts.items():

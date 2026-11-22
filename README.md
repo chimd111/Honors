@@ -41,6 +41,9 @@ Additional minute-level CSVs in `data_files/` are available for inspection but d
 
 ## Setup and running
 
+For the complete daily activity workflow, from source CSV through validation and
+saved API responses, follow the [step-by-step run guide](llm_pipeline/README.md#step-by-step-source-csv-to-saved-responses).
+
 Dependencies are Python, pandas, and NumPy:
 
 ```powershell

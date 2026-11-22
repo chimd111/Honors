@@ -42,12 +42,23 @@ days/cells, removed measurements, timestamp changes, and every before/after valu
 relative to baseline. They are not included in API prompts. Records are matched
 by original dates; duplicate reference dates are rejected as ambiguous.
 
-Both missing and noisy conditions must contain actual changes, and missing must
-remove at least one previously present measurement. Otherwise preview exits with
+For each participant's selected date window, missing must remove at least two
+previously present measurement cells and noisy must change at least two
+measurement cells compared with baseline. These may be on the same day or in the
+same measurement column on different days. Timestamp shifts do not count toward
+this minimum. Both reports record the threshold and per-condition pass status.
+Otherwise preview exits with
 status 1 after saving reports and prompts, and `--send` is blocked before any API
 requests. Choose another window or revise the condition data. Existing baseline
 missing values and corruption flags alone do not count as changes. Passing this
 check establishes the presence of changes, not their experimental severity.
+
+The daily activity generator now selects approximately 30% of rows in each noise
+group, with two distinct measurement columns targeted per selected numerical-noise
+row. Timestamp rows still receive a date shift only. Random selection and rounding
+can still leave individual windows below the minimum; validation blocks those
+windows rather than silently modifying them to pass. Existing saved runs retain
+their original prompts and responses after CSV regeneration.
 
 ```powershell
 python -m llm_pipeline --participant 1503960366 --start 2016-03-25 --days 7 --send

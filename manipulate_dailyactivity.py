@@ -21,6 +21,8 @@ original["ActivityDate"] = pd.to_datetime(
 )
 
 rng = np.random.default_rng(42)
+# Select 30% of rows in each noise group (previously 10%).
+noisy_row_fraction = 0.30
 
 # All measurement columns eligible for manipulation
 measurement_columns = [
@@ -109,7 +111,7 @@ corrupted_groups = []
 
 shifted = original.loc[groups[0]].copy()
 
-count = round(len(shifted) * 0.10)
+count = round(len(shifted) * noisy_row_fraction)
 
 selected = rng.choice(
     shifted.index.to_numpy(),
@@ -137,7 +139,7 @@ corrupted_groups.append(shifted)
 
 varied = original.loc[groups[1]].copy()
 
-count = round(len(varied) * 0.10)
+count = round(len(varied) * noisy_row_fraction)
 
 selected = rng.choice(
     varied.index.to_numpy(),
@@ -149,10 +151,10 @@ varied["corruption_type"] = "random_variation"
 varied["was_corrupted"] = False
 varied["modified_column"] = pd.NA
 
-# Randomly select a measurement column for each row
-for row_index in selected:
-
-    column = rng.choice(measurement_columns)
+# Select two distinct measurement columns per chosen numerical-noise row.
+selected_measurements = [(row_index, column) for row_index in selected
+                         for column in rng.choice(measurement_columns, size=2, replace=False)]
+for row_index, column in selected_measurements:
 
     original_value = varied.at[row_index, column]
 
@@ -179,7 +181,8 @@ for row_index in selected:
 
     varied.at[row_index, column] = new_value
     varied.at[row_index, "was_corrupted"] = True
-    varied.at[row_index, "modified_column"] = column
+    previous = varied.at[row_index, "modified_column"]
+    varied.at[row_index, "modified_column"] = column if pd.isna(previous) else previous + "," + column
 
 corrupted_groups.append(varied)
 
@@ -189,7 +192,7 @@ corrupted_groups.append(varied)
 
 spikes = original.loc[groups[2]].copy()
 
-count = round(len(spikes) * 0.10)
+count = round(len(spikes) * noisy_row_fraction)
 
 selected = rng.choice(
     spikes.index.to_numpy(),
@@ -201,9 +204,9 @@ spikes["corruption_type"] = "unrealistic_spike"
 spikes["was_corrupted"] = False
 spikes["modified_column"] = pd.NA
 
-for row_index in selected:
-
-    column = rng.choice(measurement_columns)
+selected_measurements = [(row_index, column) for row_index in selected
+                         for column in rng.choice(measurement_columns, size=2, replace=False)]
+for row_index, column in selected_measurements:
 
     # Use an extreme value relative to the column
     column_max = original[column].max()
@@ -229,7 +232,8 @@ for row_index in selected:
 
     spikes.at[row_index, column] = spike_value
     spikes.at[row_index, "was_corrupted"] = True
-    spikes.at[row_index, "modified_column"] = column
+    previous = spikes.at[row_index, "modified_column"]
+    spikes.at[row_index, "modified_column"] = column if pd.isna(previous) else previous + "," + column
 
 corrupted_groups.append(spikes)
 

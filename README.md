@@ -96,7 +96,7 @@ Each manipulation script uses `np.random.default_rng(42)` and produces four file
 | `noisy_data_internal.csv` | Noisy measurements plus original timestamp and available corruption metadata |
 | `noisy_data.csv` | The same noisy rows without experimental metadata |
 
-For noisy data, rows are randomly divided into three groups. Approximately 10% of each group is selected for one manipulation: timestamp shifts, random numerical variation, or extreme spikes. The combined file contains all rows, including rows that were not selected for changes. Timestamp shifts modify timestamps in place and can create duplicate participant-time records.
+For noisy data, rows are randomly divided into three groups: timestamp shifts, random numerical variation, or extreme spikes. Daily activity selects approximately 30% of each group, targeting two distinct measurement columns per selected numerical-noise row; timestamp rows receive a date shift only. Other streams select approximately 10% of each group for one manipulation. The combined file contains all rows, including rows that were not selected for changes. Timestamp shifts modify timestamps in place and can create duplicate participant-time records. The API pipeline requires at least two removed measurement cells in missing and two changed measurement cells in noisy for each selected participant/window; date shifts do not count toward this minimum.
 
 Daily activity masks cells across 13 measurement columns. Other streams target one measurement: heart rate `Value`, steps `StepTotal`, calories `Calories`, intensities `TotalIntensity`, sleep `value`, or weight `WeightKg`. Related measurements remain unchanged. Rounding or clipping can leave a selected value unchanged.
 

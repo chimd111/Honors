@@ -13,6 +13,7 @@ MEASUREMENTS = [
 COLUMNS = ["ActivityDate", *MEASUREMENTS]
 FILES = {"baseline": "baseline.csv", "missing": "missing_10_percent.csv",
          "noisy": "noisy_data_internal.csv"}
+MIN_CHANGED_MEASUREMENTS = 2
 INSTRUCTIONS = """Explain the following wearable activity measurements in simple language.
 Summarize activity patterns and noticeable trends, citing values from the table.
 Describe uncertainty, missing measurements, or inconsistencies that limit interpretation.
@@ -67,7 +68,8 @@ def prepare_experiment(data_dir: Path, participant: str, start: str, days: int):
         tables[condition] = INSTRUCTIONS + frame[COLUMNS].to_csv(index=False, na_rep="NA", lineterminator="\n")
     baseline = selected["baseline"]
     report = {"participant": participant, "start": start, "days": days,
-              "selected_rows": len(baseline), "conditions": {}, "blocking_reasons": []}
+              "selected_rows": len(baseline), "minimum_changed_measurements": MIN_CHANGED_MEASUREMENTS,
+              "conditions": {}, "blocking_reasons": []}
     for condition in ("missing", "noisy"):
         frame = selected[condition]
         changed = ~(baseline[COLUMNS].eq(frame[COLUMNS]) |
@@ -81,15 +83,20 @@ def prepare_experiment(data_dir: Path, participant: str, start: str, days: int):
                                     "column": column,
                                     "before": None if pd.isna(before) else (str(before) if column == "ActivityDate" else float(before)),
                                     "after": None if pd.isna(after) else (str(after) if column == "ActivityDate" else float(after))})
-        removed = sum(c["before"] is not None and c["after"] is None for c in changes)
+        removed = sum(c["column"] in MEASUREMENTS and c["before"] is not None
+                      and c["after"] is None for c in changes)
+        changed_measurements = int(changed[MEASUREMENTS].sum().sum())
+        qualifying_count = removed if condition == "missing" else changed_measurements
+        passed = qualifying_count >= MIN_CHANGED_MEASUREMENTS
         report["conditions"][condition] = {
             "changed_days": int(changed.any(axis=1).sum()),
             "changed_cells": len(changes), "removed_measurements": removed,
-            "changed_measurements": int(changed[MEASUREMENTS].sum().sum()),
+            "changed_measurements": changed_measurements, "passed": passed,
             "changed_dates": int(changed["ActivityDate"].sum()), "changes": changes}
-        if not changes:
-            report["blocking_reasons"].append(f"{condition}: no actual changes compared with baseline")
-        elif condition == "missing" and not removed:
-            report["blocking_reasons"].append("missing: no measurements removed compared with baseline")
+        if not passed:
+            kind = "removed measurements" if condition == "missing" else "changed measurements"
+            report["blocking_reasons"].append(
+                f"{condition}: {qualifying_count} {kind}; at least {MIN_CHANGED_MEASUREMENTS} required "
+                "for this participant/window (date changes do not count)")
     report["passed"] = not report["blocking_reasons"]
     return tables, report

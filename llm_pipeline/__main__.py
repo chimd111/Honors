@@ -71,11 +71,16 @@ def main():
     write_json(run_dir / "manifest.json", manifest)
     write_json(run_dir / "validation.json", validation)
     lines = ["Window validation", f"Participant: {args.participant}; start: {args.start}; days: {args.days}",
-             f"Selected daily records: {validation['selected_rows']}"]
+             f"Selected daily records: {validation['selected_rows']}",
+             f"Minimum: {validation['minimum_changed_measurements']} removed measurements in missing; "
+             f"{validation['minimum_changed_measurements']} changed measurements in noisy (dates excluded)."]
     for condition, summary in validation["conditions"].items():
         lines.append(f"{condition}: {summary['changed_days']} changed days, "
                      f"{summary['changed_cells']} changed cells, "
-                     f"{summary['removed_measurements']} removed measurements")
+                     f"{summary['changed_measurements']} changed measurements, "
+                     f"{summary['removed_measurements']} removed measurements, "
+                     f"{summary['changed_dates']} changed dates; "
+                     + ("PASS" if summary['passed'] else "BLOCKED"))
         for change in summary["changes"]:
             before = "NA" if change["before"] is None else str(change["before"])
             after = "NA" if change["after"] is None else str(change["after"])

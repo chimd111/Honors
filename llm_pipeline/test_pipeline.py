@@ -28,7 +28,7 @@ class PromptTests(unittest.TestCase):
             noisy.to_csv(root / "noisy_data_internal.csv", index=False)
             prompts = prepare_prompts(root, "123", "2020-01-01", 1)
             _, report = prepare_experiment(root, "123", "2020-01-01", 1)
-            self.assertTrue(report["passed"])
+            self.assertFalse(report["passed"])
             self.assertEqual(report["conditions"]["missing"]["removed_measurements"], 1)
             self.assertEqual(report["conditions"]["noisy"]["changed_dates"], 1)
             self.assertEqual(report["conditions"]["noisy"]["changes"][0]["reference_date"], "2020-01-01")
@@ -70,6 +70,38 @@ class PromptTests(unittest.TestCase):
             self.assertEqual(report["conditions"]["missing"]["changed_cells"], 0)
             self.assertTrue((run / "validation.txt").exists())
             self.assertFalse(json.loads((run / "manifest.json").read_text())["sent"])
+
+    def test_two_measurements_required_per_condition_and_participant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = pd.DataFrame([
+                {"Id": user, "ActivityDate": "2020-01-01", **dict.fromkeys(MEASUREMENTS, 10.0)}
+                for user in ("123", "456")])
+            baseline.to_csv(root / "baseline.csv", index=False)
+            missing = baseline.copy()
+            noisy = baseline.copy()
+            noisy["OriginalActivityDate"] = noisy["ActivityDate"]
+            for count in (0, 1, 2):
+                for column in MEASUREMENTS[:count]:
+                    missing.loc[0, column] = float("nan")
+                    noisy.loc[0, column] = 20.0
+                # A date shift must not help satisfy the measurement minimum.
+                noisy.loc[0, "ActivityDate"] = "2020-01-02"
+                missing.to_csv(root / "missing_10_percent.csv", index=False)
+                noisy.to_csv(root / "noisy_data_internal.csv", index=False)
+                _, report = prepare_experiment(root, "123", "2020-01-01", 1)
+                self.assertEqual(report["passed"], count == 2)
+                self.assertEqual(report["minimum_changed_measurements"], 2)
+                self.assertEqual(report["conditions"]["noisy"]["changed_measurements"], count)
+                _, other = prepare_experiment(root, "456", "2020-01-01", 1)
+                self.assertFalse(other["passed"])
+            # One failed condition blocks the whole run even if the other passes.
+            missing.loc[0, MEASUREMENTS[1]] = 10.0
+            missing.to_csv(root / "missing_10_percent.csv", index=False)
+            _, report = prepare_experiment(root, "123", "2020-01-01", 1)
+            self.assertFalse(report["passed"])
+            self.assertTrue(report["conditions"]["noisy"]["passed"])
+            self.assertFalse(report["conditions"]["missing"]["passed"])
 
 
 if __name__ == "__main__":
